@@ -87,25 +87,62 @@ void sendResponse(EthernetClient* client) {
   }
 
   client->println("HTTP/1.1 200 OK");
-  client->println("Content-Type: text/html");
   client->println("Pragma: no-cache");
-  client->println();
-  // print the current readings, in HTML format:
-  if (digitalRead(HEATER_PIN)) {
-    client->println("Heater is on!");
-    client->println();
-  }
-  client->print("Temperature: ");
   float celsius = getTemp(); // query the DS18B20 temp sensor
-  client->print(celsius);
-  client->print(" degrees C or ");
-  client->print(celsiusToFarenheit(celsius));
-  client->println(" degrees F<br />");
-  client->print("Set point: ");
-  client->print(set_celsius);
-  client->print(" degrees C or ");
-  client->print(celsiusToFarenheit(set_celsius));
-  client->println(" degrees F<br />");
+
+  if (strncmp("GET /help", (char*)buffer, 9) == 0) {
+    client->println("Content-Type: text/plain\n");
+    client->println("GET /sc/{DEGREES}");
+    client->println("  Set the temperature in degrees celsius.\n");
+ 
+    client->println("GET /sf/{DEGREES}");
+    client->println("  Set the temperature in degrees fahrenheit.\n");
+ 
+    client->println("GET /j/{off|on}");
+    client->println("  Turn the jets on or off.\n");
+ 
+    client->println("GET /sensors.json");
+    client->println("  All the sensor data as json\n");
+  }
+  else if (strncmp("GET /sensors.json", (char*)buffer, 17) == 0) {
+    client->println("Content-Type: application/json\n");
+    client->println("{");
+    
+    client->print("  \"heat\": ");
+    client->println(digitalRead(HEATER_PIN) ? "true," : "false,");
+    
+    client->println("  \"temperature\": {");
+    client->print("    \"celsius\": ");
+    client->print(celsius);
+    client->println(",");
+    client->print("    \"fahrenheit\": ");
+    client->print(celsiusToFarenheit(celsius));
+    client->println("  },");
+    
+    client->print("    \"jets\": ");
+    client->print(jetsOffTime > time ? jetsOffTime - time : 0);
+    client->println("}");
+  }
+  else {
+    client->println("Content-Type: text/html\n");
+    // print the current readings, in HTML format:
+    if (digitalRead(HEATER_PIN)) {
+      client->println("Heater is on!");
+      client->println();
+    }
+    client->print("Temperature: ");
+    client->print(celsius);
+    client->print(" degrees C or ");
+    client->print(celsiusToFarenheit(celsius));
+    client->println(" degrees F<br />");
+    client->print("Set point: ");
+    client->print(set_celsius);
+    client->print(" degrees C or ");
+    client->print(celsiusToFarenheit(set_celsius));
+    client->println(" degrees F<br />");
+ 
+    client->println("<br />See <a href=\"/help.txt\">help.txt</a> for API information<br />");
+  }
 }
 
 void listenForEthernetClients() {
