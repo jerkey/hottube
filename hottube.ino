@@ -3,8 +3,6 @@
 #include <Ethernet.h>
 #include <OneWire.h>
 
-#include "DS18S20.h" // reads temperature from the one digital temp sensor
-#include "button.h" // what does this do?
 
 IPAddress ip(192,168,1,75);
 static byte mac[] = { 0xDE,0xAD,0x69,0x2D,0x30,0x32 };
@@ -15,14 +13,28 @@ static byte mac[] = { 0xDE,0xAD,0x69,0x2D,0x30,0x32 };
 // (port 80 is default for HTTP):
 EthernetServer server(SERVER_PORT);
 
-#define JETS_PUMP_PIN 7 // to turn on jet blaster pump
-#define HEATER_PUMP_PIN 8 // to turn on heater circulator pump
+#define DS18S20_Pin     2 //DS18S20 Signal pin on digital 2
+#define LAMPSOCKET_PIN  3 // goes to the sideways electrical outlet
+#define BEEPER_PIN      4 // make soothing noises for the yumens
+#define LEDSTRIP_PIN    5 // string of WS2812B LEDs for tub status display
+// #define  6
+#define HEATER_PUMP_PIN 7 // to turn on heater circulator pump
+#define JETS_PUMP_PIN   8 // to turn on jet blaster pump
+#define METER_PIN       9 // analog meter connected to this pin
+#define BLEACH_KNOB_PIN  A0 // how many cups of bleach were added?
+#define H2O_PH_KNOB_PIN  A1 // connected to lower knob for H2O test
+#define H2O_CL_KNOB_PIN  A2 // connected to upper knob for H2O test
+#define BLEACH_BTN_PIN   A3 // the button pressed to log bleach event
+#define H2OTEST_BTN_PIN  A4 // the button pressed to log an H2O test
+#define JETS_REQUEST_PIN A5 // short this pin to ground to turn jets on or off
+
+#include "DS18S20.h" // reads temperature from the one digital temp sensor
+#include "button.h" // what does this do?
+
 #define PUMPMINTIME 60000 // minimum time to run heater pump
 #define HYSTERESIS 0.5 // how many degrees lower then set_celsius before turning heater on
-#define METER_PIN 9 // analog meter connected to this pin
 #define METER_TIME 1000 // how long to wait before updating meter in loop()
 #define JETS_TIME_MAX 240 // maximum jets time in minutes
-#define JETS_REQUEST_PIN A5 // short this pin to ground to turn jets on or off
 #define JETS_REQUEST_TIME 5 // minutes of jets requested
 #define TEMP_VALID_MIN 10 // minimum celsius reading from temp sensor considered valid
 #define TEMP_VALID_MAX 120 // maximum celsius reading from temp sensor considered valid
