@@ -2,7 +2,7 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <OneWire.h>
-
+#include <Adafruit_NeoPixel.h>
 
 IPAddress ip(192,168,1,75);
 static byte mac[] = { 0xDE,0xAD,0x69,0x2D,0x30,0x32 };
@@ -47,6 +47,14 @@ float set_celsius = 5; // 40.5555555C = 105F
 float celsiusReading = 0; // stores valid value read from temp sensor
 unsigned long updateMeter, pumpTime, jetsOffTime, lastTempReading = 0;
 unsigned long time = 0;
+Adafruit_NeoPixel LEDStrip = Adafruit_NeoPixel(29, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
+
+void setLEDStrip(byte r, byte g, byte b) {
+  for(byte i=0; i<LEDStrip.numPixels(); i++) {
+    LEDStrip.setPixelColor(i, LEDStrip.Color(r,g,b));
+    LEDStrip.show();
+  }
+}
 
 void setMeter(float celsius) { // set analog temperature meter
   // PWM of 24 = 0 celsius
@@ -79,6 +87,8 @@ void setup() {
     setMeter(getTemp());
   }
   else Serial.println("ERROR: DS18B20 temp sensor NOT found!!!");
+  LEDStrip.begin(); // init LED strip
+  setLEDStrip(0,255,0);
 }
 
 void redirectClient(EthernetClient* client) {
@@ -260,6 +270,10 @@ void loop() {
     float lastCelsiusReading = celsiusReading;
     celsiusReading = getTemp();
     setMeter(celsiusReading); // set the temperature meter
+    byte colorTemp = constrain(((celsiusReading-20)/20)*255, 0, 255); // gradient from 0 at 20C, 255 at 40C
+    // the next line is where we cause water chemistry to affect the color of the LEDs
+    byte waterChemistry = 0; // how nasty is the water chemistry, 0 = clean, 255 = nasty
+    setLEDStrip(colorTemp,waterChemistry,255-colorTemp); // if clean chemistry: blue at or below 20C, red at or above 40C
     if ((celsiusReading > TEMP_VALID_MIN) && (celsiusReading < TEMP_VALID_MAX)) {
       lastTempReading = time; // temperature sensor reported a sane value
     } else if (time - lastTempReading < MAXREADINGAGE) { // if the last reading isn't too old
