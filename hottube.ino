@@ -59,9 +59,11 @@ void setMeter(float celsius) { // set analog temperature meter
 }
 
 void setup() {
+  tone(BEEPER_PIN, 800, 1000); // make a beep (non-blocking function)
   pinMode(METER_PIN, OUTPUT); // enable the analog temperature meter
   pinMode(JETS_PUMP_PIN, OUTPUT);
   pinMode(HEATER_PUMP_PIN, OUTPUT);
+  pinMode(LAMPSOCKET_PIN, OUTPUT);
   analogWrite(METER_PIN, 20);  // move the needle to about -1 degree C
   Serial.begin(57600);
   Serial.println("\n[backSoon]");
