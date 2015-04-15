@@ -44,7 +44,7 @@ char buffer[BUFFER_SIZE];
 int bidx = 0;
 
 float set_celsius = 5; // 40.5555555C = 105F
-float celsiusReading = 0; // stores valid value read from temp sensor
+float celsiusReading = 255; // stores valid value read from temp sensor
 unsigned long updateMeter, pumpTime, jetsOffTime, lastTempReading = 0;
 unsigned long time = 0;
 Adafruit_NeoPixel LEDStrip = Adafruit_NeoPixel(29, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
