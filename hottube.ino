@@ -89,6 +89,22 @@ void setup() {
   else Serial.println("ERROR: DS18B20 temp sensor NOT found!!!");
   LEDStrip.begin(); // init LED strip
   setLEDStrip(0,255,0);
+  while (true) {
+    digitalWrite(JETS_PUMP_PIN, HIGH);
+    setLEDStrip(255,0,0);
+    delay(1000);
+    digitalWrite(JETS_PUMP_PIN, LOW);
+    digitalWrite(HEATER_PUMP_PIN, HIGH);
+    setLEDStrip(0,255,0);
+    delay(1000);
+    digitalWrite(HEATER_PUMP_PIN, LOW);
+    digitalWrite(LAMPSOCKET_PIN, HIGH);
+    setLEDStrip(0,0,255);
+    delay(1000);
+    digitalWrite(LAMPSOCKET_PIN, LOW);
+    setLEDStrip(0,0,0);
+    delay(1000);
+  }
 }
 
 void redirectClient(EthernetClient* client) {
