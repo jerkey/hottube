@@ -188,6 +188,12 @@ void sendResponse(EthernetClient* client) {
 
     client->print("  \"lampsocket_pin\": ");
     client->println(digitalRead(LAMPSOCKET_PIN) ? "true," : "false,");
+
+    client->print("  \"knob_ADC_value\": ");
+    client->println(analogRead(BLEACH_KNOB_PIN));
+
+    client->print("  \"button_state\": ");
+    client->println(digitalRead(BLEACH_BTN_PIN) ? "released," : "pressed,");
   }
   else {
     client->println("Content-Type: text/html\n");
