@@ -109,6 +109,16 @@ void sendResponse(EthernetClient* client) {
     redirectClient(client);
     return;
   }
+  else if (strncmp("GET /l/on", (char*)buffer, 9) == 0) {
+    digitalWrite(LAMPSOCKET_PIN,HIGH);
+    redirectClient(client);
+    return;
+  }
+  else if (strncmp("GET /l/off", (char*)buffer, 10) == 0) {
+    digitalWrite(LAMPSOCKET_PIN,LOW);
+    redirectClient(client);
+    return;
+  }
   else if (strncmp("GET /j/off", (char*)buffer, 10) == 0) {
     digitalWrite(JETS_PUMP_PIN,LOW); // deactivate jets (even though jetsOffTime will cause that)
     jetsOffTime = time; // it's turnoff time
@@ -175,6 +185,9 @@ void sendResponse(EthernetClient* client) {
     client->print("    \"jets\": ");
     client->print(jetsOffTime > time ? jetsOffTime - time : 0);
     client->println("\n}");
+
+    client->print("  \"lampsocket_pin\": ");
+    client->println(digitalRead(LAMPSOCKET_PIN) ? "true," : "false,");
   }
   else {
     client->println("Content-Type: text/html\n");
