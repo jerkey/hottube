@@ -174,26 +174,27 @@ void sendResponse(EthernetClient* client) {
     client->print(celsiusToFarenheit(celsius));
     client->println("\n  },");
     
-    client->println("  \"set_temp\": {");
+    client->print("  \"set_temp\": {\n");
     client->print("    \"celsius\": ");
     client->print(set_celsius);
-    client->println(",");
+    client->print(",\n");
     client->print("    \"fahrenheit\": ");
     client->print(celsiusToFarenheit(set_celsius));
-    client->println("\n  },");
+    client->print("\n  },\n");
 
-    client->print("    \"jets\": ");
+    client->print("  \"jets\": ");
     client->print(jetsOffTime > time ? jetsOffTime - time : 0);
-    client->println("\n}");
+    client->print(",\n");
 
     client->print("  \"lampsocket_pin\": ");
-    client->println(digitalRead(LAMPSOCKET_PIN) ? "true," : "false,");
+    client->print(digitalRead(LAMPSOCKET_PIN) ? "true,\n" : "false,\n");
 
     client->print("  \"knob_ADC_value\": ");
-    client->println(analogRead(BLEACH_KNOB_PIN));
+    client->print(analogRead(BLEACH_KNOB_PIN));
 
-    client->print("  \"button_state\": ");
-    client->println(digitalRead(BLEACH_BTN_PIN) ? "released," : "pressed,");
+    client->print(",\n  \"button_state\": ");
+    client->print(digitalRead(BLEACH_BTN_PIN) ? "\"pressed\"\n" : "\"released\"\n");
+    client->print("}\n");
   }
   else {
     client->println("Content-Type: text/html\n");
