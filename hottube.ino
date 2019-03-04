@@ -83,7 +83,10 @@ void setup() {
 #endif
   if (initTemp()) {
     Serial.print("DS18B20 temp sensor found, degrees C = ");
-    Serial.println(getTemp());
+    Serial.print(getTemp());
+    Serial.print(" serial number = ");
+    for (byte b=0; b<8; b++) Serial.print(DS18S20addr[b],HEX);
+    Serial.println();
     setMeter(getTemp());
   }
   else Serial.println("ERROR: DS18B20 temp sensor NOT found!!!");
@@ -173,6 +176,10 @@ void sendResponse(EthernetClient* client) {
     client->print("    \"fahrenheit\": ");
     client->print(celsiusToFarenheit(celsius));
     client->println("\n  },");
+
+    client->print("  \"DS18B20_sn0\": 0x");
+    for (byte b=0; b<8; b++) client->print(DS18S20addr[b],HEX);
+    client->print(",\n");
     
     client->print("  \"set_temp\": {\n");
     client->print("    \"celsius\": ");
