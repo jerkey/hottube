@@ -4,14 +4,14 @@
 #include <OneWire.h>
 #include <Adafruit_NeoPixel.h>
 
-IPAddress ip(192,168,1,75);
-static byte mac[] = { 0xDE,0xAD,0x69,0x2D,0x30,0x32 };
+IPAddress ip(10,0,0,95);
+static byte mac[] = { 0xDE,0xAD,0x69,0x2D,0x30,0x32 }; // DE:AD:69:2D:30:32
 #define SERVER_PORT 80 // what port is our web server on
 
 // Initialize the Ethernet server library
 // with the IP address and port you want to use
 // (port 80 is default for HTTP):
-EthernetServer server(SERVER_PORT);
+EthernetServer server(SERVER_PORT); // TODO https://forum.arduino.cc/index.php?topic=344538.0
 
 #define DS18S20_Pin     2 //DS18S20 Signal pin on digital 2
 #define LAMPSOCKET_PIN  3 // goes to the sideways electrical outlet
@@ -22,16 +22,19 @@ EthernetServer server(SERVER_PORT);
 #define JETS_PUMP_PIN   8 // to turn on jet blaster pump
 #define METER_PIN       9 // analog meter connected to this pin
 #define BLEACH_KNOB_PIN  A0 // how many cups of bleach were added?
-#define H2O_PH_KNOB_PIN  A1 // connected to lower knob for H2O test
-#define H2O_CL_KNOB_PIN  A2 // connected to upper knob for H2O test
+#define HTR_THERM1_PIN   A1 // connected to lower heater element thermistor (white)
+#define HTR_THERM2_PIN   A2 // connected to upper heater element thermistor (blue)
 #define BLEACH_BTN_PIN   A3 // the button pressed to log bleach event
-#define H2OTEST_BTN_PIN  A4 // the button pressed to log an H2O test
+#define HTR_ELEMENT_PIN  A4 // sends out 5V to an SSR controlling heater element
 #define JETS_REQUEST_PIN A5 // short this pin to ground to turn jets on or off
 
 #include "DS18S20.h" // reads temperature from the one digital temp sensor
 #include "button.h" // what does this do?
 
-#define PUMPMINTIME 60000 // minimum time to run heater pump
+#define HTR_THERM_MINIMUM  100 // if thermistor reads lower than this, it's an overheat
+
+#define PUMPMINTIME 5000 // minimum time to run heater pump
+#define HTR_ELEMENT_DELAY 10000 // how long to delay HTR_ELEMENT_PIN after HEATER_PUMP_PIN
 #define HYSTERESIS 0.5 // how many degrees lower then set_celsius before turning heater on
 #define METER_TIME 1000 // how long to wait before updating meter in loop()
 #define JETS_TIME_MAX 240 // maximum jets time in minutes
@@ -43,6 +46,7 @@ EthernetServer server(SERVER_PORT);
 char buffer[BUFFER_SIZE];
 int bidx = 0;
 
+unsigned int htr_therm1, htr_therm2; // store average ADC value of two heaters
 float set_celsius = 5; // 40.5555555C = 105F
 float celsiusReading = 255; // stores valid value read from temp sensor
 unsigned long updateMeter, pumpTime, jetsOffTime, lastTempReading = 0;
@@ -71,6 +75,7 @@ void setup() {
   pinMode(METER_PIN, OUTPUT); // enable the analog temperature meter
   pinMode(JETS_PUMP_PIN, OUTPUT);
   pinMode(HEATER_PUMP_PIN, OUTPUT);
+  pinMode(HTR_ELEMENT_PIN, OUTPUT);
   pinMode(LAMPSOCKET_PIN, OUTPUT);
   analogWrite(METER_PIN, 20);  // move the needle to about -1 degree C
   Serial.begin(57600);
@@ -169,7 +174,14 @@ void sendResponse(EthernetClient* client) {
     client->print("  \"heater_pump\": ");
     client->println(digitalRead(HEATER_PUMP_PIN) ? "true," : "false,");
 
-    client->println("  \"temperature\": {");
+    client->print("  \"heater_element\": ");
+    client->println(digitalRead(HTR_ELEMENT_PIN) ? "true," : "false,");
+    client->print("  \"htr_therm1\": ");
+    client->print(htr_therm1);
+    client->print(",\n  \"htr_therm2\": ");
+    client->print(htr_therm2);
+
+    client->println(",\n  \"temperature\": {");
     client->print("    \"celsius\": ");
     client->print(celsius);
     client->println(",");
@@ -291,6 +303,28 @@ void updateJets() {
   }
 }
 
+
+void updateHeaterElementState() { // heater element turns on, after delay, if temperature is safe
+  unsigned long adder = 0;
+  for (int t=0; t<10; t++) adder += analogRead(HTR_THERM1_PIN);
+  htr_therm1 = adder / 10;
+  adder = 0;
+  for (int t=0; t<10; t++) adder += analogRead(HTR_THERM2_PIN);
+  htr_therm2 = adder / 10;
+  if (htr_therm1 < HTR_THERM_MINIMUM) set_celsius = -11; // cancel heat
+  if (htr_therm2 < HTR_THERM_MINIMUM) set_celsius = -12; // cancel heat
+  if (set_celsius < 0) { // if we just decided to cancel heat
+    digitalWrite(HTR_ELEMENT_PIN, LOW);
+    if (digitalRead(HEATER_PUMP_PIN)) tone(BEEPER_PIN, 400, 4000); // make a beep (non-blocking function)
+    return;
+  }
+  if (digitalRead(HEATER_PUMP_PIN) && (time - pumpTime > HTR_ELEMENT_DELAY)) {
+    digitalWrite(HTR_ELEMENT_PIN,HIGH); // turn on heater element after delay
+  } else {
+    digitalWrite(HTR_ELEMENT_PIN,LOW); // turn off heater element
+  }
+}
+
 void loop() {
   time = millis();
   if (time - updateMeter >= METER_TIME ) {
@@ -315,9 +349,11 @@ void loop() {
       digitalWrite(HEATER_PUMP_PIN,HIGH); // turn on pump
     }
     if ((celsiusReading > set_celsius) && (time - pumpTime > PUMPMINTIME)) { // if we reach our goal, turn off heater
-      digitalWrite(HEATER_PUMP_PIN,LOW); // turn off pump
+      digitalWrite(HEATER_PUMP_PIN,LOW); // turn off heater pump
+      digitalWrite(HTR_ELEMENT_PIN,LOW); // turn off heater element
     }
   }
+  updateHeaterElementState(); // updates htr_therm1 and htr_therm2 and HTR_ELEMENT_PIN
 #ifndef DEBUG
   listenForEthernetClients();
   updateJets();
