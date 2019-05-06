@@ -31,7 +31,7 @@ EthernetServer server(SERVER_PORT); // TODO https://forum.arduino.cc/index.php?t
 #include "DS18S20.h" // reads temperature from the one digital temp sensor
 #include "button.h" // what does this do?
 
-#define HTR_THERM_MINIMUM  100 // if thermistor reads lower than this, it's an overheat
+#define HTR_THERM_MINIMUM  200 // if thermistor reads lower than this, it's an overheat
 
 #define PUMPMINTIME 5000 // minimum time to run heater pump
 #define HTR_ELEMENT_DELAY 10000 // how long to delay HTR_ELEMENT_PIN after HEATER_PUMP_PIN
