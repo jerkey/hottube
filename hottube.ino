@@ -189,9 +189,9 @@ void sendResponse(EthernetClient* client) {
     client->print(celsiusToFarenheit(celsius));
     client->println("\n  },");
 
-    client->print("  \"DS18B20_sn0\": 0x");
+    client->print("  \"DS18B20_sn0\": \"0x");
     for (byte b=0; b<8; b++) client->print(DS18S20addr[b],HEX);
-    client->print(",\n");
+    client->print("\",\n");
     
     client->print("  \"set_temp\": {\n");
     client->print("    \"celsius\": ");
