@@ -52,6 +52,22 @@ unsigned long updateMeter, pumpTime, jetsOffTime, lastTempReading = 0;
 unsigned long time = 0;
 Adafruit_NeoPixel LEDStrip = Adafruit_NeoPixel(29, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
 
+volatile unsigned long flowCounter = 0; // stores the count from the reed switch sensor (odometer :)
+volatile unsigned long flowLastTime; // stores the last time flowCount() was called
+//volatile unsigned long lastFlowSpeed; // last time we calculated flowSpeed
+unsigned int flowSpeed = 0; // this is where we store flowCounter after 1 second
+
+#define MIN_FLOWSPEED 50 // number of flowCounter after one second of counting that means enough flow
+#define FLOWSPEED_DEBOUNCE 50 // minimum time between events to avoid switch bounce
+void flowCount() {
+  unsigned long _debounce = millis() - flowLastTime; // store the time since last tick
+  if (_debounce > FLOWSPEED_DEBOUNCE) {
+    flowCounter++; // tick the odometer
+    // flowSpeed = _debounce; // store the time since last tick
+    flowLastTime = millis(); // update the timestamp
+  }
+}
+
 void setLEDStrip(byte r, byte g, byte b) {
   for(byte i=0; i<LEDStrip.numPixels(); i++) {
     LEDStrip.setPixelColor(i, LEDStrip.Color(r,g,b));
@@ -79,6 +95,8 @@ void setup() {
   analogWrite(METER_PIN, 20);  // move the needle to about -1 degree C
   Serial.begin(57600);
   Serial.println("\n[backSoon]");
+  digitalWrite(FLOW_SENSOR,HIGH); // enable internal pullup resistor on int1
+  attachInterrupt(1, flowCount, CHANGE); // call flowCount() on pin change
 #ifndef DEBUG
   Ethernet.begin(mac, ip);
   server.begin();
@@ -204,6 +222,10 @@ void sendResponse(EthernetClient* client) {
     client->print(jetsOffTime > time ? jetsOffTime - time : 0);
     client->print(",\n");
 
+    client->print("  \"flowSpeed\": ");
+    client->print(flowSpeed);
+    client->print(",\n");
+
     client->print("  \"lampsocket_pin\": ");
     client->print(digitalRead(LAMPSOCKET_PIN) ? "true,\n" : "false,\n");
 
@@ -218,7 +240,12 @@ void sendResponse(EthernetClient* client) {
     client->println("Content-Type: text/html\n");
     // print the current readings, in HTML format:
     if (digitalRead(HEATER_PUMP_PIN)) {
-      client->println("Heater pump is on!");
+      client->print("Heater pump is on! flowSpeed: ");
+      client->println(flowSpeed);
+      client->println();
+    }
+    if (digitalRead(HTR_ELEMENT_PIN)) {
+      client->println("Heater element is on!");
       client->println();
     }
     client->print("Temperature: ");
@@ -304,20 +331,7 @@ void updateJets() {
 
 
 void updateHeaterElementState() { // heater element turns on, after delay, if temperature is safe
-  unsigned long adder = 0;
-  for (int t=0; t<10; t++) adder += analogRead(HTR_THERM1_PIN);
-  htr_therm1 = adder / 10;
-  adder = 0;
-  for (int t=0; t<10; t++) adder += analogRead(HTR_THERM2_PIN);
-  htr_therm2 = adder / 10;
-  if (htr_therm1 < HTR_THERM_MINIMUM) set_celsius = -11; // cancel heat
-  if (htr_therm2 < HTR_THERM_MINIMUM) set_celsius = -12; // cancel heat
-  if (set_celsius < 0) { // if we just decided to cancel heat
-    digitalWrite(HTR_ELEMENT_PIN, LOW);
-    if (digitalRead(HEATER_PUMP_PIN)) tone(BEEPER_PIN, 400, 4000); // make a beep (non-blocking function)
-    return;
-  }
-  if (digitalRead(HEATER_PUMP_PIN) && (time - pumpTime > HTR_ELEMENT_DELAY)) {
+  if (digitalRead(HEATER_PUMP_PIN) && (flowSpeed > MIN_FLOWSPEED)) {
     digitalWrite(HTR_ELEMENT_PIN,HIGH); // turn on heater element after delay
   } else {
     digitalWrite(HTR_ELEMENT_PIN,LOW); // turn off heater element
@@ -327,6 +341,8 @@ void updateHeaterElementState() { // heater element turns on, after delay, if te
 void loop() {
   time = millis();
   if (time - updateMeter >= METER_TIME ) {
+    flowSpeed = flowCounter;
+    flowCounter = 0;  // reset the flow counter
     float lastCelsiusReading = celsiusReading;
     celsiusReading = getTemp();
     setMeter(celsiusReading); // set the temperature meter
@@ -347,7 +363,7 @@ void loop() {
       if (!digitalRead(HEATER_PUMP_PIN)) pumpTime = time; // remember when we last turned on
       digitalWrite(HEATER_PUMP_PIN,HIGH); // turn on pump
     }
-    if ((celsiusReading > set_celsius) && (time - pumpTime > PUMPMINTIME)) { // if we reach our goal, turn off heater
+    if (celsiusReading > set_celsius) { // if we reach our goal, turn off heater
       digitalWrite(HEATER_PUMP_PIN,LOW); // turn off heater pump
       digitalWrite(HTR_ELEMENT_PIN,LOW); // turn off heater element
     }
