@@ -14,18 +14,24 @@ float farenheitToCelsius(float farenheit) {
 
 boolean initTemp() {
   if ( !ds.search(DS18S20addr)) {
+#ifdef SERIAL_ENABLED
       Serial.println("DS18S20 sensor not found!");
+#endif
       ds.reset_search(); //no more sensors on chain, reset search
       return false;
   }
 
   if ( OneWire::crc8( DS18S20addr, 7) != DS18S20addr[7]) {
+#ifdef SERIAL_ENABLED
       Serial.println("DS18S20 CRC is not valid!");
+#endif
       return false;
   }
 
   if ( DS18S20addr[0] != 0x10 && DS18S20addr[0] != 0x28) {
+#ifdef SERIAL_ENABLED
       Serial.print("Device is not a DS18S20");
+#endif
       return false;
   }
   return true;

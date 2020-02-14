@@ -1,8 +1,12 @@
 // #define DEBUG // if DEBUG is defined, ethernet is disabled and serial communications happen
+// #define SERIAL_ENABLED
+#define LEDSTRIP
 #include <SPI.h>
 #include <Ethernet.h>
 #include <OneWire.h>
+#ifdef LEDSTRIP
 #include <Adafruit_NeoPixel.h>
+#endif
 
 IPAddress ip(10,0,0,95);
 static byte mac[] = { 0xDE,0xAD,0x69,0x2D,0x30,0x32 }; // DE:AD:69:2D:30:32
@@ -41,16 +45,18 @@ EthernetServer server(SERVER_PORT); // TODO https://forum.arduino.cc/index.php?t
 #define TEMP_VALID_MIN 10 // minimum celsius reading from temp sensor considered valid
 #define TEMP_VALID_MAX 120 // maximum celsius reading from temp sensor considered valid
 #define MAXREADINGAGE 60000 // maximum time since last valid reading to continue to use it
-#define BUFFER_SIZE 128 // 1024 was too big, it turns out, as was 512 after CORS
+#define BUFFER_SIZE 64 // 1024 was too big, it turns out, as was 512 after CORS
 char buffer[BUFFER_SIZE];
 int bidx = 0;
 
 unsigned int htr_therm1, htr_therm2; // store average ADC value of two heaters
 float set_celsius = 5; // 40.5555555C = 105F
 float celsiusReading = 255; // stores valid value read from temp sensor
-unsigned long updateMeter, pumpTime, jetsOffTime, lastTempReading = 0;
+unsigned long updateMeter, jetsOffTime, lastTempReading = 0;
 unsigned long time = 0;
+#ifdef LEDSTRIP
 Adafruit_NeoPixel LEDStrip = Adafruit_NeoPixel(29, LEDSTRIP_PIN, NEO_GRB + NEO_KHZ800);
+#endif
 
 volatile unsigned long flowCounter = 0; // stores the count from the reed switch sensor (odometer :)
 volatile unsigned long flowLastTime; // stores the last time flowCount() was called
@@ -68,12 +74,14 @@ void flowCount() {
   }
 }
 
+#ifdef LEDSTRIP
 void setLEDStrip(byte r, byte g, byte b) {
   for(byte i=0; i<LEDStrip.numPixels(); i++) {
     LEDStrip.setPixelColor(i, LEDStrip.Color(r,g,b));
     LEDStrip.show();
   }
 }
+#endif
 
 void setMeter(float celsius) { // set analog temperature meter
   // PWM of 24 = 0 celsius
@@ -93,27 +101,35 @@ void setup() {
   pinMode(HTR_ELEMENT_PIN, OUTPUT);
   pinMode(LAMPSOCKET_PIN, OUTPUT);
   analogWrite(METER_PIN, 20);  // move the needle to about -1 degree C
+#ifdef SERIAL_ENABLED
   Serial.begin(57600);
   Serial.println("\n[backSoon]");
+#endif
   digitalWrite(FLOW_SENSOR,HIGH); // enable internal pullup resistor on int1
   attachInterrupt(1, flowCount, CHANGE); // call flowCount() on pin change
 #ifndef DEBUG
   Ethernet.begin(mac, ip);
   server.begin();
-  Serial.print("server is at ");
-  Serial.println(Ethernet.localIP());
+  //Serial.print("server is at ");
+  //Serial.println(Ethernet.localIP());
 #endif
   if (initTemp()) {
+#ifdef SERIAL_ENABLED
     Serial.print("DS18B20 temp sensor found, degrees C = ");
     Serial.print(getTemp());
     Serial.print(" serial number = ");
     for (byte b=0; b<8; b++) Serial.print(DS18S20addr[b],HEX);
     Serial.println();
+#endif
     setMeter(getTemp());
   }
+#ifdef SERIAL_ENABLED
   else Serial.println("ERROR: DS18B20 temp sensor NOT found!!!");
+#endif
+#ifdef LEDSTRIP
   LEDStrip.begin(); // init LED strip
   setLEDStrip(0,255,0);
+#endif
 }
 
 void redirectClient(EthernetClient* client) {
@@ -267,9 +283,7 @@ void listenForEthernetClients() {
   // listen for incoming clients
   EthernetClient client = server.available();
   if (client) {
-    Serial.println("Got a client");
-    // an http request ends with a blank line
-    boolean currentLineIsBlank = true;
+    boolean currentLineIsBlank = true; // an http request ends with a blank line
     while (client.connected()) {
       if (client.available()) {
         char c = client.read();
@@ -349,18 +363,19 @@ void loop() {
     byte colorTemp = constrain(((celsiusReading-20)/20)*255, 0, 255); // gradient from 0 at 20C, 255 at 40C
     // the next line is where we cause water chemistry to affect the color of the LEDs
     byte waterChemistry = 0; // how nasty is the water chemistry, 0 = clean, 255 = nasty
+#ifdef LEDSTRIP
     setLEDStrip(colorTemp,waterChemistry,255-colorTemp); // if clean chemistry: blue at or below 20C, red at or above 40C
+#endif
     if ((celsiusReading > TEMP_VALID_MIN) && (celsiusReading < TEMP_VALID_MAX)) {
       lastTempReading = time; // temperature sensor reported a sane value
     } else if (time - lastTempReading < MAXREADINGAGE) { // if the last reading isn't too old
       celsiusReading = lastCelsiusReading; // just use the last valid value
     }
-#ifdef DEBUG
+#ifdef SERIAL_ENABLED
     Serial.println(celsiusToFarenheit(celsiusReading));
 #endif
     updateMeter = time;
     if (celsiusReading + HYSTERESIS < set_celsius) {  // only turn on heat if HYSTERESIS deg. C colder than target
-      if (!digitalRead(HEATER_PUMP_PIN)) pumpTime = time; // remember when we last turned on
       digitalWrite(HEATER_PUMP_PIN,HIGH); // turn on pump
     }
     if (celsiusReading > set_celsius) { // if we reach our goal, turn off heater
