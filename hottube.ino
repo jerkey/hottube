@@ -14,10 +14,10 @@ static byte mac[] = { 0xDE,0xAD,0x69,0x2D,0x30,0x32 }; // DE:AD:69:2D:30:32
 EthernetServer server(SERVER_PORT); // TODO https://forum.arduino.cc/index.php?topic=344538.0
 
 #define DS18S20_Pin     2 //DS18S20 Signal pin on digital 2
-#define LAMPSOCKET_PIN  3 // goes to the sideways electrical outlet
+#define FLOW_SENSOR     3 // (int1) interrupt-triggering flow sensor
 #define BEEPER_PIN      4 // make soothing noises for the yumens
 #define LEDSTRIP_PIN    5 // string of WS2812B LEDs for tub status display
-// #define  6
+#define LAMPSOCKET_PIN  6 // goes to the sideways electrical outlet
 #define HEATER_PUMP_PIN 7 // to turn on heater circulator pump
 #define JETS_PUMP_PIN   8 // to turn on jet blaster pump
 #define METER_PIN       9 // analog meter connected to this pin
@@ -29,7 +29,6 @@ EthernetServer server(SERVER_PORT); // TODO https://forum.arduino.cc/index.php?t
 #define JETS_REQUEST_PIN A5 // short this pin to ground to turn jets on or off
 
 #include "DS18S20.h" // reads temperature from the one digital temp sensor
-#include "button.h" // what does this do?
 
 #define HTR_THERM_MINIMUM  200 // if thermistor reads lower than this, it's an overheat
 
