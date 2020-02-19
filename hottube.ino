@@ -132,7 +132,7 @@ void setup() {
 #endif
 }
 
-#define PRINT_BUFFER_SIZE 32
+#define PRINT_BUFFER_SIZE 72
 char print_buffer[PRINT_BUFFER_SIZE];
 #define flash_print(_client, _str)  strncpy_P(print_buffer, PSTR((_str)), PRINT_BUFFER_SIZE); \
                                         (_client)->print(print_buffer);
@@ -280,7 +280,7 @@ void sendResponse(EthernetClient* client) {
     client->print(celsiusToFarenheit(set_celsius));
     flash_print(client, " degrees F<br />\n");
  
-    flash_print(client, "<br />See <a href=\"/help.txt\">help.txt</a> for API information<br />\n");
+    flash_print(client, "<br />See <a href=\"/help.txt\">help.txt</a> for API information<br />\n"); // longest line, 69 characters
   }
 }
 
