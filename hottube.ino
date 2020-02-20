@@ -132,16 +132,11 @@ void setup() {
 #endif
 }
 
-#define PRINT_BUFFER_SIZE 72
-char print_buffer[PRINT_BUFFER_SIZE];
-#define flash_print(_client, _str)  strncpy_P(print_buffer, PSTR((_str)), PRINT_BUFFER_SIZE); \
-                                        (_client)->print(print_buffer);
-
 void redirectClient(EthernetClient* client) {
-    flash_print(client, "HTTP/1.1 302\n");
-    flash_print(client, "Pragma: no-cache\n");
-    flash_print(client, "Access-Control-Allow-Origin: *\n");
-    flash_print(client, "Location: /\n");
+    client->println(F("HTTP/1.1 302"));
+    client->println(F("Pragma: no-cache"));
+    client->println(F("Access-Control-Allow-Origin: *"));
+    client->println(F("Location: /"));
 }
 
 void sendResponse(EthernetClient* client) {
@@ -181,106 +176,106 @@ void sendResponse(EthernetClient* client) {
     return;
   }
 
-  flash_print(client, "HTTP/1.1 200 OK\n");
-  flash_print(client, "Pragma: no-cache\n");
-  flash_print(client, "Access-Control-Allow-Origin: *\n");
+  client->println(F("HTTP/1.1 200 OK"));
+  client->println(F("Pragma: no-cache"));
+  client->println(F("Access-Control-Allow-Origin: *"));
   float celsius = getTemp(); // query the DS18B20 temp sensor
 
   if (strncmp("GET /help", (char*)buffer, 9) == 0) {
-    flash_print(client, "Content-Type: text/plain\n\n");
-    flash_print(client, "GET /sc/{DEGREES}\n");
-    flash_print(client, "  Set the temperature in degrees celsius.\n\n");
+    client->println(F("Content-Type: text/plain\n"));
+    client->println(F("GET /sc/{DEGREES}"));
+    client->println(F("  Set the temperature in degrees celsius.\n"));
  
-    flash_print(client, "GET /sf/{DEGREES}\n");
-    flash_print(client, "  Set the temperature in degrees fahrenheit.\n\n");
+    client->println(F("GET /sf/{DEGREES}"));
+    client->println(F("  Set the temperature in degrees fahrenheit.\n"));
  
-    flash_print(client, "GET /j/on/{MINUTES}\n");
-    flash_print(client, "GET /j/off\n");
-    flash_print(client, "  Turn the jets on for MINUTES or off.\n\n");
+    client->println(F("GET /j/on/{MINUTES}"));
+    client->println(F("GET /j/off"));
+    client->println(F("  Turn the jets on for MINUTES or off.\n"));
  
-    flash_print(client, "GET /sensors[.json]\n");
-    flash_print(client, "  All the sensor data [as json]\n\n");
+    client->println(F("GET /sensors[.json]"));
+    client->println(F("  All the sensor data [as json]\n"));
   }
   else if (strncmp("GET /sensors", (char*)buffer, 12) == 0) {
     if (strncmp("GET /sensors.json", (char*)buffer, 17) == 0) {
-      flash_print(client, "Content-Type: application/json\n\n");
+      client->println(F("Content-Type: application/json\n"));
     } else {
-      flash_print(client, "Content-Type: text/plain\n\n");
+      client->println(F("Content-Type: text/plain\n"));
     }
-    flash_print(client, "{\n");
+    client->println(F("{"));
 
-    flash_print(client, "  \"heater_pump\": ");
+    client->print(F("  \"heater_pump\": "));
     client->println(digitalRead(HEATER_PUMP_PIN) ? "true," : "false,");
 
-    flash_print(client, "  \"heater_element\": ");
+    client->print(F("  \"heater_element\": "));
     client->println(digitalRead(HTR_ELEMENT_PIN) ? "true," : "false,");
-    flash_print(client, "  \"htr_therm1\": ");
+    client->print(F("  \"htr_therm1\": "));
     client->print(htr_therm1);
-    flash_print(client, ",\n  \"htr_therm2\": ");
+    client->print(F(",\n  \"htr_therm2\": "));
     client->print(htr_therm2);
 
-    flash_print(client, ",\n  \"temperature\": {\n");
-    flash_print(client, "    \"celsius\": ");
+    client->println(F(",\n  \"temperature\": {"));
+    client->print(F("    \"celsius\": "));
     client->print(celsius);
-    flash_print(client, ",\n");
-    flash_print(client, "    \"fahrenheit\": ");
+    client->println(F(","));
+    client->print(F("    \"fahrenheit\": "));
     client->print(celsiusToFarenheit(celsius));
-    flash_print(client, "\n  },\n");
+    client->println(F("\n  },"));
 
-    flash_print(client, "  \"DS18B20_sn0\": \"0x");
+    client->print(F("  \"DS18B20_sn0\": \"0x"));
     for (byte b=0; b<8; b++) client->print(DS18S20addr[b],HEX);
-    flash_print(client, "\",\n");
+    client->print(F("\",\n"));
     
-    flash_print(client, "  \"set_temp\": {\n");
-    flash_print(client, "    \"celsius\": ");
+    client->print(F("  \"set_temp\": {\n"));
+    client->print(F("    \"celsius\": "));
     client->print(set_celsius);
-    flash_print(client, ",\n");
-    flash_print(client, "    \"fahrenheit\": ");
+    client->print(F(",\n"));
+    client->print(F("    \"fahrenheit\": "));
     client->print(celsiusToFarenheit(set_celsius));
-    flash_print(client, "\n  },\n");
+    client->print(F("\n  },\n"));
 
-    flash_print(client, "  \"jets\": ");
+    client->print(F("  \"jets\": "));
     client->print(jetsOffTime > time ? jetsOffTime - time : 0);
-    flash_print(client, ",\n");
+    client->print(F(",\n"));
 
-    flash_print(client, "  \"flowSpeed\": ");
+    client->print(F("  \"flowSpeed\": "));
     client->print(flowSpeed);
-    flash_print(client, ",\n");
+    client->print(F(",\n"));
 
-    flash_print(client, "  \"lampsocket_pin\": ");
+    client->print(F("  \"lampsocket_pin\": "));
     client->print(digitalRead(LAMPSOCKET_PIN) ? "true,\n" : "false,\n");
 
-    flash_print(client, "  \"knob_ADC_value\": ");
+    client->print(F("  \"knob_ADC_value\": "));
     client->print(analogRead(BLEACH_KNOB_PIN));
 
-    flash_print(client, ",\n  \"button_state\": ");
+    client->print(F(",\n  \"button_state\": "));
     client->print(digitalRead(BLEACH_BTN_PIN) ? "\"pressed\"\n" : "\"released\"\n");
-    flash_print(client, "}\n");
+    client->print(F("}\n"));
   }
   else {
-    flash_print(client, "Content-Type: text/html\n\n");
+    client->println(F("Content-Type: text/html\n"));
     // print the current readings, in HTML format:
     if (digitalRead(HEATER_PUMP_PIN)) {
-      flash_print(client, "Heater pump is on! flowSpeed: ");
+      client->print(F("Heater pump is on! flowSpeed: "));
       client->println(flowSpeed);
       client->println();
     }
     if (digitalRead(HTR_ELEMENT_PIN)) {
-      flash_print(client, "Heater element is on!\n");
+      client->println(F("Heater element is on!"));
       client->println();
     }
-    flash_print(client, "Temperature: ");
+    client->print(F("Temperature: "));
     client->print(celsius);
-    flash_print(client, " degrees C or ");
+    client->print(F(" degrees C or "));
     client->print(celsiusToFarenheit(celsius));
-    flash_print(client, " degrees F<br />\n");
-    flash_print(client, "Set point: ");
+    client->println(F(" degrees F<br />"));
+    client->print(F("Set point: "));
     client->print(set_celsius);
-    flash_print(client, " degrees C or ");
+    client->print(F(" degrees C or "));
     client->print(celsiusToFarenheit(set_celsius));
-    flash_print(client, " degrees F<br />\n");
+    client->println(F(" degrees F<br />"));
  
-    flash_print(client, "<br />See <a href=\"/help.txt\">help.txt</a> for API information<br />\n"); // longest line, 69 characters
+    client->println(F("<br />See <a href=\"/help.txt\">help.txt</a> for API information<br />"));
   }
 }
 
