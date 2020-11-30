@@ -1,5 +1,5 @@
-// #define DEBUG // if DEBUG is defined, ethernet is disabled and serial communications happen
-// #define SERIAL_ENABLED
+// #define DEBUG // if DEBUG is defined, ethernet is disabled
+#define SERIAL_ENABLED
 #define LEDSTRIP
 #include <SPI.h>
 #include <Ethernet.h>
@@ -63,7 +63,7 @@ volatile unsigned long flowLastTime; // stores the last time flowCount() was cal
 //volatile unsigned long lastFlowSpeed; // last time we calculated flowSpeed
 unsigned int flowSpeed = 0; // this is where we store flowCounter after 1 second
 
-#define MIN_FLOWSPEED 50 // number of flowCounter after one second of counting that means enough flow
+#define MIN_FLOWSPEED 15 // number of flowCounter after one second of counting that means enough flow
 #define FLOWSPEED_DEBOUNCE 50 // minimum time between events to avoid switch bounce
 void flowCount() {
   unsigned long _debounce = millis() - flowLastTime; // store the time since last tick
