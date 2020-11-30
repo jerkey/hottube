@@ -283,6 +283,7 @@ void listenForEthernetClients() {
   // listen for incoming clients
   EthernetClient client = server.available();
   if (client) {
+    Serial.print(client.remoteIP());
     boolean currentLineIsBlank = true; // an http request ends with a blank line
     while (client.connected()) {
       if (client.available()) {
@@ -310,6 +311,7 @@ void listenForEthernetClients() {
     }
     // give the web browser time to receive the data
     delay(1);
+    Serial.println(" has finished");
     // close the connection:
     client.stop();
   }
