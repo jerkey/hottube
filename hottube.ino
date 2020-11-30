@@ -1,6 +1,7 @@
 // #define DEBUG // if DEBUG is defined, ethernet is disabled
 #define SERIAL_ENABLED
 #define LEDSTRIP
+#include <Adafruit_SleepyDog.h> // using this requires 76 bytes of program and 2 bytes of RAM
 #include <SPI.h>
 #include <Ethernet.h>
 #include <OneWire.h>
@@ -46,6 +47,7 @@ EthernetServer server(SERVER_PORT); // TODO https://forum.arduino.cc/index.php?t
 #define TEMP_VALID_MAX 120 // maximum celsius reading from temp sensor considered valid
 #define MAXREADINGAGE 60000 // maximum time since last valid reading to continue to use it
 #define CLIENT_TIMEOUT 2000 // timeout on a slow client
+#define WATCHDOG_TIMEOUT 5000 // watchdog will reset if this much time goes by
 #define BUFFER_SIZE 64 // 1024 was too big, it turns out, as was 512 after CORS
 char buffer[BUFFER_SIZE];
 int bidx = 0;
@@ -131,6 +133,7 @@ void setup() {
   LEDStrip.begin(); // init LED strip
   setLEDStrip(0,255,0);
 #endif
+  Watchdog.enable(WATCHDOG_TIMEOUT); // enable watchdog to reset after a few seconds
 }
 
 void redirectClient(EthernetClient* client) {
@@ -357,6 +360,7 @@ void updateHeaterElementState() { // heater element turns on, after delay, if te
 }
 
 void loop() {
+  Watchdog.reset(); // pat the watchdog to prevent a reboot
   time = millis();
   if (time - updateMeter >= METER_TIME ) {
     flowSpeed = flowCounter;
