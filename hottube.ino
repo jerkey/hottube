@@ -45,6 +45,7 @@ EthernetServer server(SERVER_PORT); // TODO https://forum.arduino.cc/index.php?t
 #define TEMP_VALID_MIN 10 // minimum celsius reading from temp sensor considered valid
 #define TEMP_VALID_MAX 120 // maximum celsius reading from temp sensor considered valid
 #define MAXREADINGAGE 60000 // maximum time since last valid reading to continue to use it
+#define CLIENT_TIMEOUT 2000 // timeout on a slow client
 #define BUFFER_SIZE 64 // 1024 was too big, it turns out, as was 512 after CORS
 char buffer[BUFFER_SIZE];
 int bidx = 0;
@@ -285,7 +286,8 @@ void listenForEthernetClients() {
   if (client) {
     Serial.print(client.remoteIP());
     boolean currentLineIsBlank = true; // an http request ends with a blank line
-    while (client.connected()) {
+    unsigned long connectStart = millis();
+    while (client.connected() && (millis() - connectStart < CLIENT_TIMEOUT) ) {
       if (client.available()) {
         char c = client.read();
         buffer[bidx++] = c;
