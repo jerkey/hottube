@@ -258,6 +258,15 @@ void sendResponse(EthernetClient* client) {
   }
   else {
     client->println(F("Content-Type: text/html\n"));
+    client->println(F("<style> * {\
+font:40px bold;\
+color:White;\
+background:Black;\
+padding: 20px;\
+border-radius: 10px;\
+text-decoration: none;\
+line-height:3.5;\
+} </style>"));
     // print the current readings, in HTML format:
     if (digitalRead(HEATER_PUMP_PIN)) {
       client->print(F("Heater pump is on! flowSpeed: "));
@@ -268,18 +277,29 @@ void sendResponse(EthernetClient* client) {
       client->println(F("Heater element is on!"));
       client->println();
     }
-    client->print(F("Temperature: "));
+    client->print(F("<br>Temperature: "));
     client->print(celsius);
-    client->print(F(" degrees C or "));
+    client->print(F("&deg; C or "));
     client->print(celsiusToFarenheit(celsius));
-    client->println(F(" degrees F<br />"));
+    client->println(F("&deg; F<br>"));
     client->print(F("Set point: "));
     client->print(set_celsius);
-    client->print(F(" degrees C or "));
+    client->print(F("&deg; C or "));
     client->print(celsiusToFarenheit(set_celsius));
-    client->println(F(" degrees F<br />"));
+    client->println(F("&deg; F"));
  
-    client->println(F("<br />See <a href=\"/help.txt\">help.txt</a> for API information<br />"));
+    client->println(F("\
+<a href=\"/\" style=\"background-color:#888888; color:Black\">CHECK&nbsp;TEMP</a>\
+<a href=\"sf/80\" style=\"background-color:DodgerBlue\">80&deg;F/27&deg;C&nbsp;(off)</a>\
+<br>\
+<a href=\"sf/100\" style=\"background-color:Green\">100&deg;F/38&deg;C</a>\
+<a href=\"sf/102\" style=\"background-color:Orange; color:Black\">102&deg;F/39&deg;C</a>\
+<a href=\"sc/40\" style=\"background-color:#FF0000\">104&deg;F/40&deg;C</a>\
+<br>\
+<a href=\"l/off\" style=\"background-color:Black\">Light&nbsp;Off</a>\
+<a href=\"l/on\" style=\"background-color:Yellow; color:Black\">Light&nbsp;On</a>\
+<br>See <a href=\"/help\" style=\"text-decoration:underline\" >help</a> for API information\
+"));
   }
 }
 
